@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("https://localhost:7182/");
 var app = builder.Build();
 
-app.MapGet("/", () => "Without sockets\n" + $"{DateTime.Now:dd.MM.yyyy HH:mm:ss}");
+app.MapGet("/", () => "Without sockets: " + $"{DateTime.Now:dd.MM.yyyy HH:mm:ss}");
 
 app.UseWebSockets();
 
@@ -22,7 +22,7 @@ app.Map("/ws", async context =>
         {
             while (true)
             {
-                var message = "With sockets\n" + $"{DateTime.Now:dd.MM.yyyy HH:mm:ss}";
+                var message = "With sockets: " + $"{DateTime.Now:dd.MM.yyyy HH:mm:ss}";
                 var bytes = Encoding.UTF8.GetBytes(message);
                 var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
 
