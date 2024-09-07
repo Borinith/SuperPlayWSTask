@@ -5,49 +5,41 @@ using SuperPlayServer.Data;
 using System;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SuperPlayServer.Controllers
 {
     [Route("/ws/[controller]")]
-    public class LoginController : ControllerBase
+    public class UpdateResourcesController : ControllerBase
     {
         private readonly SuperplayContext _context;
 
-        public LoginController(SuperplayContext context)
+        public UpdateResourcesController(SuperplayContext context)
         {
             _context = context;
         }
 
-        [HttpGet("{deviceId?}")]
-        public async Task Login(Guid? deviceId)
+        [HttpGet("{deviceId}/{resourceType}/{value}")]
+        public async Task UpdateResources(Guid deviceId, ResourceType resourceType, int value)
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
-                var device = new Device();
+                var resource = await _context.Resources
+                                   .Include(x => x.Device)
+                                   .FirstOrDefaultAsync(x =>
+                                       x.Device.Id == deviceId && x.ResourceType == resourceType) ??
+                               throw new Exception("Resource not found");
 
-                if (deviceId is null || await _context.Devices.AsNoTracking().FirstOrDefaultAsync(x => x.Id == deviceId.Value) is not { } existingDevice)
-                {
-                    device.Id = Guid.NewGuid(); //new Guid("B69DADDA-1502-4621-A18D-6188C6D8301C");
-                    device.PlayerId = Guid.NewGuid(); //new Guid("F4F30EBC-900F-4B7E-808A-98AF99B2354B");
-                    device.IsOnline = true;
+                var newResourceValue = resource.ResourceValue + value;
 
-                    _context.Devices.Add(device);
+                resource.ResourceValue = newResourceValue;
 
-                    await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    device.Id = existingDevice.Id;
-                    device.PlayerId = existingDevice.PlayerId;
-                    device.IsOnline = existingDevice.IsOnline;
-                }
+                await _context.SaveChangesAsync();
 
                 using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-                var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(device));
+                var bytes = Encoding.UTF8.GetBytes(newResourceValue.ToString());
 
                 var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
 

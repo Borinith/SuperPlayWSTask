@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SuperPlayServer.Data
@@ -13,6 +14,8 @@ namespace SuperPlayServer.Data
 
         public int ResourceValue { get; set; }
 
-        public Device Device { get; set; } = null!;
+        public Guid DeviceId { get; set; }
+
+        public virtual Device Device { get; set; } = null!;
     }
 }

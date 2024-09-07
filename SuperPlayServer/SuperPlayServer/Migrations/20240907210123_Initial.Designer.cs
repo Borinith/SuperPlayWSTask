@@ -11,7 +11,7 @@ using SuperPlayServer.Data;
 namespace SuperPlayServer.Migrations
 {
     [DbContext(typeof(SuperplayContext))]
-    [Migration("20240907153036_Initial")]
+    [Migration("20240907210123_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

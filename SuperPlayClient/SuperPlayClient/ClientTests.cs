@@ -57,5 +57,37 @@ namespace SuperPlayClient
                 }
             }
         }
+
+        [Fact]
+        public async Task UpdateResourcesTest()
+        {
+            using (var ws = new ClientWebSocket())
+            {
+                // todo log
+                Guid? deviceId = new Guid("B69DADDA-1502-4621-A18D-6188C6D8301C");
+                const ResourceType resourceType = ResourceType.Coins;
+                const int value = 50;
+
+                await ws.ConnectAsync(new Uri($"wss://localhost:7182/ws/updateResources/{deviceId}/{resourceType}/{value}"), CancellationToken.None);
+                // todo log
+
+                var bufferGuid = new byte[1024 * 4];
+
+                var result = await ws.ReceiveAsync(new ArraySegment<byte>(bufferGuid), CancellationToken.None);
+
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+                    // todo log
+                    return;
+                }
+
+                var message = Encoding.UTF8.GetString(bufferGuid).TrimEnd('\0');
+
+                _testOutputHelper.WriteLine($"New value = {message}");
+                // todo log
+            }
+        }
     }
 }
