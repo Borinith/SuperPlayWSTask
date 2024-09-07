@@ -5,12 +5,22 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace SuperPlayClient
 {
-    public static class Program
+    public class ClientTests
     {
-        public static async Task Main(string[] args)
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public ClientTests(ITestOutputHelper testOutputHelper)
+        {
+            _testOutputHelper = testOutputHelper;
+        }
+
+        [Fact]
+        public async Task LoginTest()
         {
             using (var ws = new ClientWebSocket())
             {
@@ -39,10 +49,10 @@ namespace SuperPlayClient
                 {
                     if (message.IsOnline)
                     {
-                        Console.WriteLine("Player is now online!");
+                        _testOutputHelper.WriteLine("Player is online now!");
                     }
 
-                    Console.WriteLine(message.PlayerId);
+                    _testOutputHelper.WriteLine(message.PlayerId.ToString());
                     // todo log
                 }
             }
