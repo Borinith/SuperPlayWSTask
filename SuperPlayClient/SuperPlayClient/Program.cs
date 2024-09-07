@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,26 +12,25 @@ namespace SuperPlayClient
             using (var ws = new ClientWebSocket())
             {
                 // todo log
-                await ws.ConnectAsync(new Uri("wss://localhost:7182/ws"), CancellationToken.None);
+                var deviceId = new Guid("B69DADDA-1502-4621-A18D-6188C6D8301C");
+
+                await ws.ConnectAsync(new Uri($"wss://localhost:7182/ws/login/{deviceId}"), CancellationToken.None);
                 // todo log
 
-                var buffer = new byte[1024 * 4];
+                var bufferGuid = new byte[16]; // Guid size
 
-                while (true)
+                var result = await ws.ReceiveAsync(new ArraySegment<byte>(bufferGuid), CancellationToken.None);
+
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        // todo log
-                        break;
-                    }
-
-                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-
-                    Console.Write(message + "\r");
                     // todo log
+                    return;
                 }
+
+                var message = new Guid(bufferGuid);
+
+                Console.Write(message);
+                // todo log
             }
         }
     }
