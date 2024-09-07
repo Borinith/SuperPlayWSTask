@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SuperPlayServer.Data;
 
@@ -10,9 +11,11 @@ using SuperPlayServer.Data;
 namespace SuperPlayServer.Migrations
 {
     [DbContext(typeof(SuperplayContext))]
-    partial class SuperplayContextModelSnapshot : ModelSnapshot
+    [Migration("20240907215821_IndexForPlayerId")]
+    partial class IndexForPlayerId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.8");

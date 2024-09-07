@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SuperPlayServer.ConnectionManager;
 using SuperPlayServer.Data;
 using System;
-using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SuperPlayServer.Controllers
@@ -14,10 +12,12 @@ namespace SuperPlayServer.Controllers
     [Route("/ws/[controller]")]
     public class LoginController : ControllerBase
     {
+        private readonly IConnection _connection;
         private readonly SuperplayContext _context;
 
-        public LoginController(SuperplayContext context)
+        public LoginController(IConnection connection, SuperplayContext context)
         {
+            _connection = connection;
             _context = context;
         }
 
@@ -46,21 +46,7 @@ namespace SuperPlayServer.Controllers
                 }
 
                 using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
-
-                var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(device));
-
-                var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
-
-                if (ws.State == WebSocketState.Open)
-                {
-                    await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-                    // todo log
-                }
-                else if (ws.State == WebSocketState.Closed || ws.State == WebSocketState.Aborted)
-                {
-                    // todo log
-                    throw new Exception("Web socket connection is not open");
-                }
+                await _connection.SendMessage(ws, JsonSerializer.Serialize(device));
             }
             else
             {
