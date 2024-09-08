@@ -41,7 +41,7 @@ namespace SuperPlayServer.Controllers
 
                     await _context.SaveChangesAsync();
 
-                    _logger.LogInformation("Created new device");
+                    _logger.LogInformation($"Created new device with id={device.Id}");
                 }
                 else
                 {

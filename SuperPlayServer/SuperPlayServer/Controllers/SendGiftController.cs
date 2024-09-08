@@ -42,14 +42,14 @@ namespace SuperPlayServer.Controllers
 
                 if (resourceCurrentPlayer is null)
                 {
-                    _logger.LogError("Resource of current player not found");
+                    _logger.LogError($"Resource of current player with device id={deviceId} not found");
 
                     return;
                 }
 
                 if (resourceCurrentPlayer.ResourceValue < value)
                 {
-                    _logger.LogError("It is not possible to send a gift!");
+                    _logger.LogError($"It is not possible to send a gift because value={value} is greater than resource value={resourceCurrentPlayer.ResourceValue} of current player!");
 
                     return;
                 }
@@ -60,7 +60,7 @@ namespace SuperPlayServer.Controllers
 
                 if (resourceFriend is null)
                 {
-                    _logger.LogError("Resource of friend not found");
+                    _logger.LogError($"Resource of friend with id={friendPlayerId} not found");
 
                     return;
                 }

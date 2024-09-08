@@ -34,7 +34,7 @@ namespace SuperPlayServer.Controllers
 
                 if (resource is null)
                 {
-                    _logger.LogError("Resource not found");
+                    _logger.LogError($"Resource with device id={deviceId} not found");
 
                     return;
                 }
