@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using SuperPlayServer.ConnectionManager;
 using SuperPlayServer.Data;
 
@@ -15,6 +16,9 @@ builder.Services.AddDbContext<SuperplayContext>(options =>
 
 builder.Services.AddControllers().AddControllersAsServices();
 builder.Services.AddScoped<IConnection, Connection>();
+
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration));
 
 var app = builder.Build();
 

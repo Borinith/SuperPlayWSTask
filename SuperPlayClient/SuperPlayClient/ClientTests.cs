@@ -1,4 +1,6 @@
-﻿using SuperPlayClient.DTOs;
+﻿using Microsoft.Extensions.Configuration;
+using Serilog;
+using SuperPlayClient.DTOs;
 using System;
 using System.Net.WebSockets;
 using System.Text;
@@ -12,11 +14,27 @@ namespace SuperPlayClient
 {
     public class ClientTests
     {
+        private readonly ILogger _logger;
         private readonly ITestOutputHelper _testOutputHelper;
 
         public ClientTests(ITestOutputHelper testOutputHelper)
         {
             _testOutputHelper = testOutputHelper;
+
+            _logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.TestOutput(testOutputHelper)
+                .CreateLogger();
+        }
+
+        private static IConfiguration InitConfiguration()
+        {
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", true, true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            return config;
         }
 
         [Fact]
@@ -24,11 +42,14 @@ namespace SuperPlayClient
         {
             using (var ws = new ClientWebSocket())
             {
-                // todo log
-                Guid? deviceId = new Guid("B69DADDA-1502-4621-A18D-6188C6D8301C");
+                var config = InitConfiguration();
+                Guid? deviceId = new Guid(config["DeviceId"]!);
 
-                await ws.ConnectAsync(new Uri($"wss://localhost:7182/ws/login/{deviceId}"), CancellationToken.None);
-                // todo log
+                _logger.Information("Init configuration");
+
+                await ws.ConnectAsync(new Uri(config["Uri"] + $"login/{deviceId}"), CancellationToken.None);
+
+                _logger.Information($"Run login test with deviceId={deviceId}");
 
                 var message = await ReceiveMessage(ws);
                 var device = JsonSerializer.Deserialize<DeviceDTO>(message);
@@ -37,11 +58,10 @@ namespace SuperPlayClient
                 {
                     if (device.IsOnline)
                     {
-                        _testOutputHelper.WriteLine("Player is online now!");
+                        WriteLog("Player is online now!");
                     }
 
-                    _testOutputHelper.WriteLine(device.PlayerId.ToString());
-                    // todo log
+                    WriteLog(device.PlayerId.ToString());
                 }
             }
         }
@@ -51,18 +71,21 @@ namespace SuperPlayClient
         {
             using (var ws = new ClientWebSocket())
             {
-                // todo log
-                Guid? deviceId = new Guid("B69DADDA-1502-4621-A18D-6188C6D8301C");
+                var config = InitConfiguration();
+                Guid? deviceId = new Guid(config["DeviceId"]!);
+
+                _logger.Information("Init configuration");
+
                 const ResourceType resourceType = ResourceType.Coins;
                 const int value = 50;
 
-                await ws.ConnectAsync(new Uri($"wss://localhost:7182/ws/updateResources/{deviceId}/{resourceType}/{value}"), CancellationToken.None);
-                // todo log
+                await ws.ConnectAsync(new Uri(config["Uri"] + $"updateResources/{deviceId}/{resourceType}/{value}"), CancellationToken.None);
+
+                _logger.Information($"Run update resources test with deviceId={deviceId}, resourceType={resourceType}, value={value}");
 
                 var message = await ReceiveMessage(ws);
 
-                _testOutputHelper.WriteLine($"New value = {message}");
-                // todo log
+                WriteLog($"New value = {message}");
             }
         }
 
@@ -71,31 +94,30 @@ namespace SuperPlayClient
         {
             using (var ws = new ClientWebSocket())
             {
-                // todo log
-                Guid? deviceId = new Guid("B69DADDA-1502-4621-A18D-6188C6D8301C");
-                Guid? friendPlayerId = new Guid("4C8B1953-1A2A-49AB-BA8B-8B0F276412A1");
+                var config = InitConfiguration();
+                Guid? deviceId = new Guid(config["DeviceId"]!);
+                Guid? friendPlayerId = new Guid(config["Friends:0:FriendId"]!);
+
+                _logger.Information("Init configuration");
+
                 const ResourceType resourceType = ResourceType.Coins;
                 const int value = 2;
 
-                await ws.ConnectAsync(new Uri($"wss://localhost:7182/ws/sendGift/{deviceId}/{friendPlayerId}/{resourceType}/{value}"), CancellationToken.None);
-                // todo log
+                await ws.ConnectAsync(new Uri(config["Uri"] + $"sendGift/{deviceId}/{friendPlayerId}/{resourceType}/{value}"), CancellationToken.None);
+
+                _logger.Information($"Run send gift test with deviceId={deviceId}, friendPlayerId={friendPlayerId}, resourceType={resourceType}, value={value}");
 
                 var message = await ReceiveMessage(ws);
                 var friendDevice = JsonSerializer.Deserialize<DeviceDTO>(message);
 
-                if (friendDevice is not null)
+                if (friendDevice is not null && friendDevice.IsOnline)
                 {
-                    if (friendDevice.IsOnline)
-                    {
-                        _testOutputHelper.WriteLine("Your friend received a gift!");
-                    }
-
-                    // todo log
+                    WriteLog("Your friend received a gift!");
                 }
             }
         }
 
-        private static async Task<string> ReceiveMessage(WebSocket ws)
+        private async Task<string> ReceiveMessage(WebSocket ws)
         {
             var bufferGuid = new byte[1024 * 4];
 
@@ -105,11 +127,18 @@ namespace SuperPlayClient
             {
                 await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
 
-                // todo log
+                _logger.Error("Message type is close");
+
                 return string.Empty;
             }
 
             return Encoding.UTF8.GetString(bufferGuid).TrimEnd('\0');
+        }
+
+        private void WriteLog(string message)
+        {
+            _testOutputHelper.WriteLine(message);
+            _logger.Information(message);
         }
     }
 }

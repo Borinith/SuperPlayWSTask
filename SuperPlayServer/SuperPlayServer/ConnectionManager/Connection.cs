@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -8,6 +9,13 @@ namespace SuperPlayServer.ConnectionManager
 {
     public class Connection : IConnection
     {
+        private readonly ILogger<Connection> _logger;
+
+        public Connection(ILogger<Connection> logger)
+        {
+            _logger = logger;
+        }
+
         public async Task SendMessage(WebSocket ws, string message)
         {
             var bytes = Encoding.UTF8.GetBytes(message);
@@ -17,12 +25,12 @@ namespace SuperPlayServer.ConnectionManager
             if (ws.State == WebSocketState.Open)
             {
                 await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-                // todo log
+
+                _logger.LogInformation($"Message = {message} sent successfully");
             }
             else if (ws.State == WebSocketState.Closed || ws.State == WebSocketState.Aborted)
             {
-                // todo log
-                throw new Exception("Web socket connection is not open");
+                _logger.LogError("Web socket connection is not open");
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SuperPlayServer.ConnectionManager;
 using SuperPlayServer.Data;
 using System;
@@ -14,11 +15,13 @@ namespace SuperPlayServer.Controllers
     {
         private readonly IConnection _connection;
         private readonly SuperplayContext _context;
+        private readonly ILogger<LoginController> _logger;
 
-        public LoginController(IConnection connection, SuperplayContext context)
+        public LoginController(IConnection connection, SuperplayContext context, ILogger<LoginController> logger)
         {
             _connection = connection;
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet("{deviceId?}")]
@@ -37,6 +40,8 @@ namespace SuperPlayServer.Controllers
                     _context.Devices.Add(device);
 
                     await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Created new device");
                 }
                 else
                 {
@@ -45,15 +50,16 @@ namespace SuperPlayServer.Controllers
                     device.IsOnline = existingDevice.IsOnline;
                 }
 
+                var deviceString = JsonSerializer.Serialize(device);
+
                 using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                await _connection.SendMessage(ws, JsonSerializer.Serialize(device));
+                await _connection.SendMessage(ws, deviceString);
             }
             else
             {
-                // todo log
                 HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-                throw new Exception("It is not a web socket connection");
+                _logger.LogError("It is not a web socket connection");
             }
         }
     }
