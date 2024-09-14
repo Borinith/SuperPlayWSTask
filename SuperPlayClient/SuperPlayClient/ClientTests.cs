@@ -40,18 +40,23 @@ namespace SuperPlayClient
         [Fact]
         public async Task LoginTest()
         {
-            using (var ws = new ClientWebSocket())
+            var config = InitConfiguration();
+            var deviceId = new Guid(config["DeviceId"]!);
+
+            _logger.Information("Init configuration");
+
+            var sendData = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new MessageDTO(Method.Login, deviceId.ToString())));
+
+            using var ws = new ClientWebSocket();
+            await ws.ConnectAsync(new Uri(config["Uri"]!), CancellationToken.None);
+
+            while (ws.State == WebSocketState.Open)
             {
-                var config = InitConfiguration();
-                Guid? deviceId = new Guid(config["DeviceId"]!);
-
-                _logger.Information("Init configuration");
-
-                await ws.ConnectAsync(new Uri(config["Uri"] + $"login/{deviceId}"), CancellationToken.None);
+                await ws.SendAsync(new ArraySegment<byte>(sendData), WebSocketMessageType.Text, false, CancellationToken.None);
 
                 _logger.Information($"Run login test with deviceId={deviceId}");
 
-                var message = await ReceiveMessage(ws);
+                var message = await ProcessMessage(ws);
                 var device = JsonSerializer.Deserialize<DeviceDTO>(message);
 
                 if (device is not null)
@@ -63,61 +68,96 @@ namespace SuperPlayClient
 
                     WriteLog(device.PlayerId.ToString());
                 }
+
+                // Close WS for testing
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+                WriteLog("Connection closed");
             }
         }
 
         [Fact]
         public async Task UpdateResourcesTest()
         {
-            using (var ws = new ClientWebSocket())
+            var config = InitConfiguration();
+            var deviceId = new Guid(config["DeviceId"]!);
+
+            _logger.Information("Init configuration");
+
+            const ResourceType resourceType = ResourceType.Coins;
+            const int value = 50;
+
+            var sendData = Encoding.UTF8.GetBytes(
+                JsonSerializer.Serialize(
+                    new MessageDTO(
+                        Method.UpdateResources,
+                        JsonSerializer.Serialize(new UpdateResourcesDTO(deviceId, resourceType, value)
+                        ))));
+
+            using var ws = new ClientWebSocket();
+            await ws.ConnectAsync(new Uri(config["Uri"]!), CancellationToken.None);
+
+            while (ws.State == WebSocketState.Open)
             {
-                var config = InitConfiguration();
-                Guid? deviceId = new Guid(config["DeviceId"]!);
-
-                _logger.Information("Init configuration");
-
-                const ResourceType resourceType = ResourceType.Coins;
-                const int value = 50;
-
-                await ws.ConnectAsync(new Uri(config["Uri"] + $"updateResources/{deviceId}/{resourceType}/{value}"), CancellationToken.None);
+                await ws.SendAsync(new ArraySegment<byte>(sendData), WebSocketMessageType.Text, false, CancellationToken.None);
 
                 _logger.Information($"Run update resources test with deviceId={deviceId}, resourceType={resourceType}, value={value}");
 
-                var message = await ReceiveMessage(ws);
+                var message = await ProcessMessage(ws);
 
                 WriteLog($"New value = {message}");
+
+                // Close WS for testing
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+                WriteLog("Connection closed");
             }
         }
 
         [Fact]
         public async Task SendGiftTest()
         {
-            using (var ws = new ClientWebSocket())
+            var config = InitConfiguration();
+            var deviceId = new Guid(config["DeviceId"]!);
+            var friendPlayerId = new Guid(config["Friends:0:FriendId"]!);
+
+            _logger.Information("Init configuration");
+
+            const ResourceType resourceType = ResourceType.Coins;
+            const int value = 2;
+
+            var sendData = Encoding.UTF8.GetBytes(
+                JsonSerializer.Serialize(
+                    new MessageDTO(
+                        Method.SendGift,
+                        JsonSerializer.Serialize(new SendGiftDTO(deviceId, friendPlayerId, resourceType, value)
+                        ))));
+
+            using var ws = new ClientWebSocket();
+            await ws.ConnectAsync(new Uri(config["Uri"]!), CancellationToken.None);
+
+            while (ws.State == WebSocketState.Open)
             {
-                var config = InitConfiguration();
-                Guid? deviceId = new Guid(config["DeviceId"]!);
-                Guid? friendPlayerId = new Guid(config["Friends:0:FriendId"]!);
-
-                _logger.Information("Init configuration");
-
-                const ResourceType resourceType = ResourceType.Coins;
-                const int value = 2;
-
-                await ws.ConnectAsync(new Uri(config["Uri"] + $"sendGift/{deviceId}/{friendPlayerId}/{resourceType}/{value}"), CancellationToken.None);
+                await ws.SendAsync(new ArraySegment<byte>(sendData), WebSocketMessageType.Text, false, CancellationToken.None);
 
                 _logger.Information($"Run send gift test with deviceId={deviceId}, friendPlayerId={friendPlayerId}, resourceType={resourceType}, value={value}");
 
-                var message = await ReceiveMessage(ws);
+                var message = await ProcessMessage(ws);
                 var friendDevice = JsonSerializer.Deserialize<DeviceDTO>(message);
 
                 if (friendDevice is not null && friendDevice.IsOnline)
                 {
                     WriteLog("Your friend received a gift!");
                 }
+
+                // Close WS for testing
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+                WriteLog("Connection closed");
             }
         }
 
-        private async Task<string> ReceiveMessage(WebSocket ws)
+        private async Task<string> ProcessMessage(WebSocket ws)
         {
             var bufferGuid = new byte[1024 * 4];
 
